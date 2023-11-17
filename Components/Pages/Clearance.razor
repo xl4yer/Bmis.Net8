@@ -1,0 +1,125 @@
+﻿@page "/clearance"
+@rendermode InteractiveServer
+
+<MudToolBar>
+    <MudButtonGroup Color="Color.Tertiary" Variant="Variant.Text">
+        <MudButton @onclick="(e => Refresh())">Refresh</MudButton>
+        <MudButton @onclick="(e => Add())">Add</MudButton>
+    </MudButtonGroup>
+    <MudSpacer/>
+    <MudTextField @bind-Value="txtsearch"
+                  TextChanged="Search"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  AdornmentColor="Color.Tertiary"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense">
+    </MudTextField>
+</MudToolBar> 
+
+
+<MudTable Class="ma-5" Dense="true" Hover="true" Items="@clearanceList" HorizontalScrollbar="true"
+          FixedHeader="@fixed_header" FixedFooter="@fixed_footer"
+          Height="@(fixed_header || fixed_footer ? "500px" : "")">
+    <HeaderContent>
+        <MudTh>Date</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Purpose</MudTh>
+        <MudTh colspan="3"></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Date">@context.date?.ToString("d")</MudTd>
+        <MudTd DataLabel="Fullname">@context.fullname</MudTd>
+        <MudTd DataLabel="Purpose">@context.purpose</MudTd>
+        <MudTd>
+            <MudFab Color="Color.Tertiary"
+                    StartIcon="@Icons.Material.Filled.Edit"
+            @onclick="(e => Edit(context.clearID))"
+                    Size="MudBlazor.Size.Small" />
+            <MudFab Color="Color.Primary"
+                    StartIcon="@Icons.Material.Filled.Print"
+                    Size="MudBlazor.Size.Small" 
+                    @onclick="(e => Print(context.clearID))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private string txtsearch { get; set; } = "";
+    clearance[]? clearanceList;
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    private string search { get; set; } = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await loadClearance();
+        }
+    }
+
+    private async Task loadClearance()
+    {
+        try
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri($"{Nav.BaseUri}");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+                await LocalStorage.GetItemAsStringAsync("token"));
+                HttpResponseMessage response = await client.GetAsync($"api/clearance/clearance");
+                if (response.IsSuccessStatusCode)
+                {
+                    string contentrespose = await response.Content.ReadAsStringAsync();
+                    clearanceList = JsonConvert.DeserializeObject<clearance[]>(contentrespose);
+                    StateHasChanged();
+                }
+                else
+                {
+                    SnackBar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+        //
+        }
+    }
+
+    public async Task Search()
+    {
+
+    }
+
+    private async Task Refresh()
+    {
+        await loadClearance();
+    }
+
+    private async Task Add()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("xresident", new residents());
+        var dialog = await Dialog.Show<AddClearance>("Add Clearance", parameters).Result;
+    }
+
+    private async Task Edit(int id)
+    {
+
+    }
+
+    [Inject]
+    protected IJSRuntime JSRuntime { get; set; }
+    private async Task Print(int id)
+    {
+        string path = $"printclearance/{id}";
+        await OpenInNewTab(path);
+    }
+    private async ValueTask OpenInNewTab(string url)
+    {
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+}

@@ -1,0 +1,227 @@
+﻿@page "/printclearance/{id:int}"
+@rendermode InteractiveServer
+@layout Components.Layout.LoginLayout
+
+<div class="body">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-3">
+                <img src="logo.png" height="100" />
+            </div>
+            <div class="col-sm-6" style="text-align:center">
+                <br />
+                Republic of the Philippines <br />
+                City of General Santos<br />
+                <div style="font-weight:bold">BARANGAY SAN ISIDRO</div>
+                <div style="font-style:italic">TEL NO: 887-5976, 887-5979</div>
+            </div>
+            <div class="col-sm-3">
+                <img src="picture34.png" height="100" />
+            </div>
+        </div>
+    </div>
+
+    <h2 style="text-align:center; font-family:'Times New Roman'">BARANGAY CLEARANCE</h2>
+
+
+    <div class="row">
+        <div class="col-sm-5"
+             style="text-align:left;
+                 font-weight:bold">
+            ALL OFFICERS OF LAW <br />
+            and To Whom It May Concern:
+
+        </div>
+        <div class="col-sm-3" style="text-align:center">
+        </div>
+        <div class="col-sm-4" style="text-align:center">
+            @xclearance.date?.ToString("MMMM dd, yyyy")
+        </div>
+    </div>
+
+
+    <div style="text-align:center">
+        <div style="background-color:#D99594;
+                    font-family:'Times New Roman';
+                    font-weight:bold;
+                    font-size:25px;
+                    text-transform:uppercase">
+            @xclearance.fullname
+        </div>
+        <div style="font-weight:bold">OF</div>
+        <div style="background-color:#D99594;
+                    font-family:'Times New Roman';
+                    font-weight:bold;
+                    font-size:18px;
+                    text-transform:uppercase">
+            <div>@xclearance.purok</div>
+            BARANGAY SAN ISIDRO, GSC
+        </div>
+
+    </div>
+    <br />
+    Whose Community Tax Certificate No. appears below, is a
+    bonafide resident of this Barangay at present. This
+    <br />
+    is to certify further that upon verification of the
+    records filed in this office, subject individual was found to
+    <br />
+    have:
+    <div style="background-color:#D99594;
+                    font-family:'Times New Roman';
+                    font-weight:bold;
+                    font-size:18px;
+                    text-align:center">
+        NO DEROGATORY RECORD AND PENDING CASE
+    </div>
+
+    <br />
+    <div style="text-align:center">
+        This Certification is being issued upon the request of
+        this above-mentioned person for
+    </div>
+    <br />
+    <div style="background-color:#D99594;
+                    font-family:'Times New Roman';
+                    font-weight:bold;
+                    font-size:18px;
+                    text-align:center">
+        REQUIREMENT FOR @xclearance.purpose
+    </div>
+    <br />
+    Note however that this certification is subject for CANCELLATION
+    for any cause violate of existing rules and
+    <br />
+    regulations and ordinances of this barangay. This Barangay
+    Clearance is INVALID unless filed and approved by
+    <br /> the Office of the Punong Barangay.
+    <br />
+    <br />
+    <b>Records Verified By</b>
+    <div class="container" style="text-align:left">
+        <img src="sig1.png" class="sig1" alt="Sig1" height="100"> <br /><br /><br />
+        <div style="text-decoration:underline">EDSON JAY C. ALCARIA </div>
+        Barangay Secretary
+    </div>
+    <div class="container" style="text-align:left; text-indent:250px">
+        <img src="sig2.png" class="sig1" alt="Sig1" height="100"> <br /><br /><br />
+        <div style="text-decoration:underline">HON. EDWARD FREDERICK J. YUMANG</div>
+    </div>
+
+    <div style="text-indent:110px; font-weight:bold">
+        NOT VALID WITHOUT DRY SEAL
+    </div>
+
+
+    <div class="row">
+        <div class="col-sm-6" style="font-size:12px">
+            <div class="grid-container">
+                <div class="grid-item">CTC NO.</div>
+                <div class="grid-item"></div>
+                <div class="grid-item">Issued on</div>
+                <div class="grid-item"></div>
+                <div class="grid-item">Issued At</div>
+                <div class="grid-item">BSI - GSC</div>
+                <div class="grid-item">OR No.</div>
+                <div class="grid-item"></div>
+                <div class="grid-item">OR Date </div>
+                <div class="grid-item"></div>
+                <div class="grid-item">Date Prepared </div>
+                <div class="grid-item"></div>
+                <div class="grid-item">Prepared by</div>
+                <div class="grid-item"></div>
+                <div class="grid-item">Valid up to</div>
+                <div class="grid-item">6 MONTHS AFTER ISSUE</div>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="box"></div>
+            <div style="text-indent:20px">Right Thumb</div>
+        </div>
+        <div class="col-sm-4">
+            <br /><br />
+            <div style="text-align:center;
+                        text-indent: 15px;
+                        font-size:20px;
+                        text-decoration:underline;
+                        text-transform:uppercase">
+                @xclearance.fullname
+            </div>
+            <div style="font-size:15px;
+                            font-weight:normal;
+                            text-decoration:none;
+                            text-align:center;
+                           ">
+                Signature
+            </div>
+
+        </div>
+
+    </div> <br />
+    <div style="font-style:italic;
+                font-weight:bold">
+        Valid after payment of the
+        corresponding fee and within <u>6 months</u>
+        after issue.
+    </div>
+</div>
+
+@code
+{
+    [Parameter] public int id { get; set; }
+    [Parameter] public clearance xclearance { get; set; } = new clearance();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        string apiUrl = $"{Nav.BaseUri}api/clearance/clearance";
+        var response = await Http.GetAsync(apiUrl);
+        response.EnsureSuccessStatusCode();
+        string responseBodyJson = await response.Content.ReadAsStringAsync();
+        var clr = JsonConvert.DeserializeObject<List<clearance>>(responseBodyJson);
+        xclearance = clr.Where(x => x.clearID == id).FirstOrDefault();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(500);
+            await IJS.InvokeAsync<string>("window.print");
+        }
+    }
+}
+
+<style>
+    .sig1 {
+        position: absolute;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: auto auto;
+    }
+
+    .grid-item {
+        border: 1px solid rgba(0, 0, 0, 0.8);
+        text-align: center;
+    }
+
+    .box {
+        width: 120px;
+        height: 120px;
+        border: 1px solid black;
+    }
+
+    .box2 {
+        width: 170px;
+        height: 110px;
+        border: 1px solid black;
+    }
+
+    .body {
+        background-image: url('opacity.png');
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+    }
+</style>

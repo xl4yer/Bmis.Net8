@@ -1,0 +1,122 @@
+﻿@rendermode InteractiveServer
+
+<MudDialog DisableSidePadding="true">
+    <DialogContent>
+
+        <MudContainer Style="max-height: 500px; overflow-y: scroll">
+            <MudDatePicker Label="Date"
+                           Editable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+            @bind-Date="dateNow"
+                           Placeholder="Select Date" /><br />
+
+            <MudAutocomplete Clearable T="residents"
+                              Label="Name/ID #"
+             @bind-Value="xresident"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              SearchFunc="@Search"
+                              ToStringFunc="@(e=> e==null?null : $"{e.fullname}")"
+                              Strict="false">
+             </MudAutocomplete> <br />
+
+             @if (hide)
+            {
+                <MudTextField @bind-Value="@xresident.resID"
+                              Label="Resident ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense">
+                </MudTextField>
+            }
+            <MudTextField @bind-Value="@xclearance.purpose"
+                          T="string" Lines="3"
+                          Label="Purpose"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense">
+            </MudTextField>
+
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Tertiary"
+        @onclick="Submit">Submit</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool hide = false;
+    DateTime? dateNow = DateTime.Today;
+    private string text { get; set; } = "";
+    [Parameter]
+    public residents xresident { get; set; } = new residents();
+    public clearance xclearance { get; set; } = new clearance();
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    private async Task Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task<IEnumerable<residents>> Search(string value)
+    {
+        HttpClient httpClient = new HttpClient();
+        httpClient.BaseAddress = new Uri($"{Nav.BaseUri}");
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+        await LocalStorage.GetItemAsStringAsync("token"));
+        var xinfo = await httpClient.GetFromJsonAsync<List<residents>>($"api/resident/searchresident?search={value}");
+        return xinfo;
+    }
+
+    private async Task Submit()
+    {
+        int i = 0;
+        try
+        {
+            var _clearance = new clearance
+                {
+                    date = dateNow.Value,
+                    resID = xresident.resID,
+                    purpose = xclearance.purpose
+                };
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri($"{Nav.BaseUri}");
+                var json = JsonConvert.SerializeObject(_clearance);
+                HttpContent content = new StringContent(json);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+                await LocalStorage.GetItemAsStringAsync("token"));
+                HttpResponseMessage response = await client.PostAsync($"api/clearance/addclearance", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    string contentresponse = await response.Content.ReadAsStringAsync();
+                    i = JsonConvert.DeserializeObject<int>(contentresponse);
+                    if (i > 0)
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            SnackBar.Add($"Done: Successfully Saved!", Severity.Success);
+                            MudDialog.Cancel();
+                            await InvokeAsync(StateHasChanged);
+                        });
+                    }
+                }
+                else
+                {
+                    await InvokeAsync(() =>
+                    {
+                        SnackBar.Add($"Warning: {response.ReasonPhrase}", Severity.Warning);
+                        StateHasChanged();
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+}

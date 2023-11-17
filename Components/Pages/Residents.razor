@@ -1,0 +1,142 @@
+﻿@page "/residents"
+@rendermode InteractiveServer
+
+<MudToolBar>
+    <MudButtonGroup Color="Color.Tertiary"
+                    Variant="Variant.Text">
+        <MudButton @onclick="(e => Refresh())">Refresh</MudButton>
+        <MudButton @onclick="(e => Add())">Add</MudButton>
+    </MudButtonGroup>
+    <MudSpacer />
+    <MudTextField @bind-Value="txtsearch"
+                  TextChanged="Search"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  AdornmentColor="Color.Tertiary"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense">
+    </MudTextField>
+</MudToolBar>
+
+<MudTable Class="ma-5"
+          Dense="true"
+          Hover="true" Items="@residentList"
+          HorizontalScrollbar="true"
+          FixedHeader="@fixed_header"
+          FixedFooter="@fixed_footer"
+          Height="@(fixed_header || fixed_footer ? "500px" : "")">
+    <HeaderContent>
+        <MudTh>ID #</MudTh>
+        <MudTh Style="height:50px;">Photo</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Purok</MudTh>
+        <MudTh>Gender</MudTh>
+        <MudTh>Contact</MudTh>
+        <MudTh colspan="3"></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID #">@context.resID</MudTd>
+            <MudTd id="rows" DataLabel="photo">
+                <img src="data:image/bmp;base64, @(Convert.ToBase64String(@context.photo))" class="img" />
+            </MudTd>
+            <MudTd DataLabel="Name">@context.fullname</MudTd>
+            <MudTd DataLabel="Purok">@context.purok</MudTd>
+            <MudTd DataLabel="Contact">@context.gender</MudTd>
+            <MudTd DataLabel="Contact">@context.contact</MudTd>
+            <MudTd>
+                <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Edit" @onclick="(e => Edit(context.resID))" Size="Size.Small" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @code {
+    residents[]? residentList;
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    private string txtsearch { get; set; } = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await loadResidents();
+        }
+    }
+
+    private async Task loadResidents()
+    {
+        try
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri($"{Nav.BaseUri}");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+                await LocalStorage.GetItemAsStringAsync("token"));
+                HttpResponseMessage response = await client.GetAsync($"api/resident/residents");
+                if (response.IsSuccessStatusCode)
+                {
+                    string contentrespose = await response.Content.ReadAsStringAsync();
+                    residentList = JsonConvert.DeserializeObject<residents[]>(contentrespose);
+                    StateHasChanged();
+                }
+                else
+                {
+                    SnackBar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            //
+        }
+    }
+
+    private async Task Refresh()
+    {
+        await loadResidents();
+    }
+
+    private async Task Add()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("xres", new residents());
+        var dialog = await Dialog.Show<AddResident>("Add Resident", parameters).Result;
+    }
+
+    private async Task Edit(int id)
+    {
+        var parameters = new DialogParameters();
+        var update = residentList.FirstOrDefault(_ => _.resID == id);
+        parameters.Add("xres", update);
+        var dialog = await Dialog.Show<UpdateResident>("Update Resident", parameters).Result;
+    }
+
+    public async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(txtsearch))
+        {
+            StateHasChanged();
+            return;
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            await LocalStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/resident/searchresident?search={txtsearch}");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                residentList = JsonConvert.DeserializeObject<residents[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                SnackBar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+            }
+        }
+
+    }
+}
